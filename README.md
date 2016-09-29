@@ -2,8 +2,7 @@
 scrapes all the freecycle pages you put in a list and displays them in a single table
 
 
-How to Install
-^^^^^^^^^^^^^^
+## How to Install
 
 1. install python 3.4
 2. pip install beautifulsoup4
@@ -13,8 +12,7 @@ How to Install
 6. access from localhost:8000
 
 
-Todo
-^^^^
+## Todo
 
-1. fix AJAX loading of changed JSON data rather than refreshing page
+1. fix AJAX loading of changed JSON data rather than JS refreshing page
 2. add archive log of all freecycle posts to do data analysis
