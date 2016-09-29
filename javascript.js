@@ -9,8 +9,9 @@ $(document).ready(function() {
         },
         "columns": [
             { "data": "dateposted" },
+            { "data": "htmldesc" },
+            { "data": "location" },
             { "data": "groupurltext" },
-            { "data": "desc" },
             { "data": "postid" },
         ]
     } );

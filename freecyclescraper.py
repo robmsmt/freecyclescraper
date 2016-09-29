@@ -2,9 +2,10 @@
 
 from bs4 import BeautifulSoup
 from time import strftime
+from datetime import datetime
+from datetime import timedelta
 from os import system
-import urllib2
-import chardet
+import requests
 import re
 import time
 import json
@@ -36,8 +37,9 @@ def generateIndexHtml():
             <thead>
                 <tr>
                     <th>Time Posted</th>
-                    <th>Group Name</th>
                     <th>Details</th>
+                    <th>Location</th>
+                    <th>Group Name</th>
                     <th>Post ID</th>
                 </tr>
             </thead>
@@ -48,31 +50,46 @@ def generateIndexHtml():
     </html>"""
     return html
 
-
 def getData():
     offerdata = []
     for url in searchableGroupList:
-        pageFile = urllib2.urlopen(url)
-        pageHtml = pageFile.read()
-        pageFile.close()
+        headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                                 'Chrome/52.0.2743.116 Safari/537.36'}
+        try:
+            response = requests.get(url, headers=headers)
+        except requests.exceptions.RequestException as e:
+            print(e)
+            print("Waiting 15 minutes")
+            time.sleep(60*15)
+            return []
 
-        ''' todo - fix the unicode bug which means some of the table info is stripped - html meta tags say utf-8 but the
-        content looks to be ascii from the chardet analysis of the page'''
-        #print(chardet.detect(pageHtml))
-        #print(pageFile.headers.getheader('content-type'))
+        response.encoding = response.headers['content-type']
+        pagehtml = response.text
 
-        soup = BeautifulSoup(pageHtml, 'html5lib')
+        # Choose a parser (html.parser, lxml, html5lib)
+        soup = BeautifulSoup(pagehtml, 'html5lib')
+        # Find all TR tags
         tr = soup.find_all("tr")
 
         for element in tr:
+            # Within each TR find the TD tags
             td = element.findAll("td")
             tdData1 = td[0].get_text("|", strip=True)
-            # tdData2 is 'broken' due to freecycle not being parsed properly - some data is missing tbc
-            tdData2 = td[1]
+            tdfull = td[1]
+            tdData2 = td[1].get_text("|", strip=True)
+
+            # Use hacky regex to strip out unwanted content (a post with a | could break this)
+            tdData2 = re.sub(r'\|See details', '', str(tdData2))
+            location = re.sub(r'.*\|\(', '', str(tdData2))
+            location = re.sub(r'\)', '', location)
+            itemurl = tdfull.a.get('href')
+            itemdesc = re.sub(r'\|\(.*\)', '', str(tdData2))
+            htmldesc = '<a href="{}">{}</a>'.format(itemurl, itemdesc)
 
             # regex strip url to reveal the groupname - front of str then back
             urltext = re.sub(r'https://groups.freecycle.org/group/', '', url)
             urltext = re.sub(r'/posts/offer', '', urltext)
+
             # regex strip datefield to reveal just the date - front of str then back
             date = re.sub(r'>\|OFFER\|', '', str(tdData1))
             date = re.sub(r'\|\(#[0-9]+\)', '', date)
@@ -84,29 +101,44 @@ def getData():
                               "groupurl": url,
                               "groupurltext": urltext,
                               "dateposted": date,
-                              "desc": str(tdData2)
+                              "htmldesc": htmldesc,
+                              "itemdesc": itemdesc,
+                              "itemurl": itemurl,
+                              "location": location
                               })
 
     # output the offerdata dict to JSON
     with open('data.json', 'w') as fp:
         json.dump(offerdata, fp, sort_keys=False, indent=4)
-
     return offerdata
 
 def changesInData(difference):
-    # changes can be either a new post, deleted post, admin remove one (and changes because of these) e.g.
-    # todo make only the new post data printed/spoken (ignore old/deleted etc)
+    # changes can be either a new post OR someone has deleted a top10 post meaning an old one is now "new"
+    # we need to drop any that haven't occurred in the last 5 minutes as they are old
 
-    print("CHANGES at {0}".format(strftime("%Y-%m-%d %H:%M:%S")))
-    print(difference)
-    x = 0
-    while x < 3:
-        print "\a"  # makes a "beep"
-        time.sleep(0.1)
-        x = x + 1
+    print("CHANGES at {}".format(strftime("%Y-%m-%d %H:%M:%S")))
 
-    # this line if uncommented will speak all the differences (osx only)
-    #system("say new {0}".format(difference))
+    for i in range(len(difference)):
+        dict = difference[i]
+        itemdesc = dict['itemdesc']
+        print(itemdesc)
+        timepost = dict['dateposted']
+        format = "%a %b %d %H:%M:%S %Y"
+        now = datetime.now().strftime(format)
+        # lol @ date>string>date
+        date_object_now = datetime.strptime(now, format)
+        date_object_then = datetime.strptime(timepost, format)
+        delt = (date_object_now - date_object_then)
+
+        # only notify on changes with timestamp of under 15mins
+        if(delt <= timedelta(minutes=15)):
+            # makes a "beep"
+            print ("\a")
+            time.sleep(0.1)
+            print ("\a")
+            time.sleep(0.1)
+            # Speak the differences
+            system("say New item, {}".format(dict['itemdesc']))
 
     return
 
@@ -115,7 +147,6 @@ if __name__ == '__main__':
     f.write(generateIndexHtml())
     f.close()
     prevGetData = None
-    #lastDataTimestamp = time.time()
     try:
         with open('data.json') as fp:
             prevGetData = json.load(fp)
@@ -131,9 +162,9 @@ if __name__ == '__main__':
         if newData == prevGetData:
             print("NoChanges at {0}".format(strftime("%Y-%m-%d %H:%M:%S")))
         elif newData != prevGetData and prevGetData is not None:
-            difference = [a for a in prevGetData+newData if (a not in prevGetData) or (a not in newData)]
+            #difference = [a for a in prevGetData+newData if (a not in prevGetData) or (a not in newData)]
+            difference = [a for a in prevGetData+newData if (a not in prevGetData)]
             changesInData(difference)
-            #lastDataTimestamp = time.time()
         elif prevGetData is None:
             print("No prev data to compare at {0}".format(strftime("%Y-%m-%d %H:%M:%S")))
         prevGetData = newData
