@@ -123,12 +123,14 @@ def changesInData(difference):
         itemdesc = dict['itemdesc']
         print(itemdesc)
         timepost = dict['dateposted']
+        print(timepost)
         format = "%a %b %d %H:%M:%S %Y"
         now = datetime.now().strftime(format)
         # lol @ date>string>date
         date_object_now = datetime.strptime(now, format)
         date_object_then = datetime.strptime(timepost, format)
         delt = (date_object_now - date_object_then)
+        print(delt)
 
         # only notify on changes with timestamp of under 15mins
         if(delt <= timedelta(minutes=15)):
@@ -136,9 +138,9 @@ def changesInData(difference):
             print ("\a")
             time.sleep(0.1)
             print ("\a")
-            time.sleep(0.1)
+            time.sleep(0.3)
             # Speak the differences
-            system("say New item, {}".format(dict['itemdesc']))
+            system("say New item, {}. ".format(itemdesc))
 
     return
 

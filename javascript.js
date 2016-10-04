@@ -17,16 +17,12 @@ $(document).ready(function() {
     } );
 
 
-//    setInterval( function () {
-//        table.ajax.reload( null, false ); // user paging is not reset on reload
-//    }, 30000 );
-//
-//    table.ajax.reload( function ( json ) {
-//        $('#group_posts_table').val( json.lastInput );
-//    } );
+    setInterval( function () {
+        table.ajax.reload( null, false ); // user paging is not reset on reload
+    }, 30000 );
 
+    table.ajax.reload( function ( json ) {
+        $('#group_posts_table').val( json.lastInput );
+    } );
 
 } );
-
-// todo - could not get ajax data refresh above to work with data tables therefore hacky manual refresh below
-window.setTimeout(function(){ document.location.reload(true); }, 30000);

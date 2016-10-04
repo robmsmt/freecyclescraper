@@ -12,7 +12,7 @@ Scrapes all the freecycle pages you put in a list and displays them in a single 
 
 ## Todo
 
-1. fix AJAX loading of changed JSON data rather than JS refreshing page
+~~1. fix AJAX loading of changed JSON data rather than JS refreshing page~~
 2. add log/db of all freecycle posts to do long term data analysis
 3. improve new post detection by using unique postID rather than posts that x number of minutes old.
 4. improve regex implemenation, it is hacky, posts descriptions with "|" or locations with ")" will probably break displaying
