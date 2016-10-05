@@ -23,17 +23,21 @@ searchableGroupList = [
     "https://groups.freecycle.org/group/KentishtownUK/posts/offer",
 ]
 
+
 def generateIndexHtml():
     html = """
     <!DOCTYPE html><html lang="en"><meta charset="utf-8">
     <head><title>freecyclescraper</title>
         <link rel="stylesheet" type="text/css" href="stylesheet.css">
-        <script type="text/javascript" src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
-        <script type="text/javascript" src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+        <script type="text/javascript"
+            src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+        <script type="text/javascript"
+            src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
         <script type="text/javascript" src="javascript.js"></script>
     </head>
     <body><section id="content">
-        <table id="group_posts_table" class="display" width="100%" cellspacing="0.5">
+        <table id="group_posts_table" class="display"
+            width="100%" cellspacing="0.5">
             <thead>
                 <tr>
                     <th>Time Posted</th>
@@ -50,17 +54,19 @@ def generateIndexHtml():
     </html>"""
     return html
 
+
 def getData():
     offerdata = []
     for url in searchableGroupList:
-        headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+        headers = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64)' +
+                                 ' AppleWebKit/537.36 (KHTML, like Gecko) '
                                  'Chrome/52.0.2743.116 Safari/537.36'}
         try:
             response = requests.get(url, headers=headers)
         except requests.exceptions.RequestException as e:
             print(e)
             print("Waiting 15 minutes")
-            time.sleep(60*15)
+            time.sleep(60 * 15)
             return []
 
         response.encoding = response.headers['content-type']
@@ -78,7 +84,8 @@ def getData():
             tdfull = td[1]
             tdData2 = td[1].get_text("|", strip=True)
 
-            # Use hacky regex to strip out unwanted content (a post with a | could break this)
+            # Use hacky regex to strip out unwanted content
+            # (a post with a | could break this)
             tdData2 = re.sub(r'\|See details', '', str(tdData2))
             location = re.sub(r'.*\|\(', '', str(tdData2))
             location = re.sub(r'\)', '', location)
@@ -90,9 +97,11 @@ def getData():
             urltext = re.sub(r'https://groups.freecycle.org/group/', '', url)
             urltext = re.sub(r'/posts/offer', '', urltext)
 
-            # regex strip datefield to reveal just the date - front of str then back
+            # regex strip datefield to reveal just the date
+            # front of str then back
             date = re.sub(r'>\|OFFER\|', '', str(tdData1))
             date = re.sub(r'\|\(#[0-9]+\)', '', date)
+
             # postID stripped from same str as date
             postID = re.sub(r'>\|OFFER\|.*\(', '', str(tdData1))
             postID = re.sub(r'\)', '', postID)
@@ -112,9 +121,12 @@ def getData():
         json.dump(offerdata, fp, sort_keys=False, indent=4)
     return offerdata
 
+
 def changesInData(difference):
-    # changes can be either a new post OR someone has deleted a top10 post meaning an old one is now "new"
-    # we need to drop any that haven't occurred in the last 5 minutes as they are old
+    # changes can be either a new post OR someone has deleted
+    # a top10 post meaning an old one is now "new".
+    # we need to drop any that haven't occurred in the last 5 minutes
+    # as they are old
 
     print("CHANGES at {}".format(strftime("%Y-%m-%d %H:%M:%S")))
 
@@ -144,6 +156,7 @@ def changesInData(difference):
 
     return
 
+
 if __name__ == '__main__':
     f = open('index.html', 'w')
     f.write(generateIndexHtml())
@@ -164,11 +177,15 @@ if __name__ == '__main__':
         if newData == prevGetData:
             print("NoChanges at {0}".format(strftime("%Y-%m-%d %H:%M:%S")))
         elif newData != prevGetData and prevGetData is not None:
-            #difference = [a for a in prevGetData+newData if (a not in prevGetData) or (a not in newData)]
-            difference = [a for a in prevGetData+newData if (a not in prevGetData)]
+            # difference = [a for a in prevGetData+newData if
+            # (a not in prevGetData) or (a not in newData)]
+            difference = [a for a in prevGetData + newData
+                          if (a not in prevGetData)]
             changesInData(difference)
         elif prevGetData is None:
-            print("No prev data to compare at {0}".format(strftime("%Y-%m-%d %H:%M:%S")))
+            print("No prev data to compare at {0}".format(
+                strftime("%Y-%m-%d %H:%M:%S")))
         prevGetData = newData
-        # pauses between every 60 seconds as to not overload the freecycle server
+        # pauses between every 60 seconds as to not
+        # overload the freecycle server
         time.sleep(60)
